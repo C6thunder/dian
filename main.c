@@ -16,6 +16,7 @@
 #include "BSP/encoder.h"
 #include "BSP/motor.h"        /* LEFT_MOTOR_ID / RIGHT_MOTOR_ID */
 #include "BSP/gw_grayscale_sensor.h"
+#include "BSP/camera.h"
 #include "BSP/IMU/IMU.h"
 #include "BSP/IMU/mpu6050.h"
 /* v4.22：删 ndrivers/uart.h。模块是纯 I2C MPU6050（不是串口版），
@@ -215,15 +216,15 @@ static void oled_show_trace_dbg(void)
 {
     char line[32];
 
-    /* 行 0（y=0）：传感器可视化 bar + 原始值
-     *   "##..##.. GR:18" — bar 从左到右=CH1..CH8，#=黑 .=白 */
+    /* 行 0（y=0）：摄像头识别的数字 + 灰度原始值 */
     {
-        char bar[9];
-        for (uint8_t i = 0; i < 8; ++i) {
-            bar[i] = (car.gray[i] == 0U) ? '#' : '.';
+        if (car.cam_detected) {
+            snprintf(line, sizeof(line), "num:%d GR:%02X",
+                     car.cam_cmd, (unsigned)car.gray_raw);
+        } else {
+            snprintf(line, sizeof(line), "num:-- GR:%02X",
+                     (unsigned)car.gray_raw);
         }
-        bar[8] = '\0';
-        snprintf(line, sizeof(line), "%s GR:%02X", bar, (unsigned)car.gray_raw);
         OLED_ShowString(0, 0, (u8 *)line, 12);
     }
 
@@ -240,8 +241,11 @@ static void oled_show_trace_dbg(void)
              (unsigned)car.left_duty, (unsigned)car.right_duty);
     OLED_ShowString(0, 32, (u8 *)line, 12);
 
-    /* 行 3（y=48）：陀螺仪 */
-    snprintf(line, sizeof(line), "Gz:%+5.1f/s", car.gz_dps);
+    /* 行 3（y=48）：摄像头调试 + LED提示 */
+    snprintf(line, sizeof(line), "rx:%lu f:%lu Gz:%+4.0f",
+             (unsigned long)g_cam_rx_bytes,
+             (unsigned long)g_cam_rx_frames,
+             car.gz_dps);
     OLED_ShowString(0, 48, (u8 *)line, 12);
 }
 
@@ -375,6 +379,15 @@ int main(void)
                 oled_show_trace_dbg();
             }
             OLED_Refresh();
+        }
+
+        /* ----- 摄像头轮询（每 ~20ms） ----- */
+        if (soft_timer_is_timeout(SOFT_TIMER_READ_CAMERA)) {
+            soft_timer_reset(SOFT_TIMER_READ_CAMERA);
+            camera_poll();
+            const camera_result_t *cam = camera_get_result();
+            car.cam_detected = cam->detected;
+            car.cam_cmd      = cam->cmd;
         }
 
         /* ----- 读灰度（每 ~10ms） ----- */

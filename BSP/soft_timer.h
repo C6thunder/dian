@@ -24,7 +24,8 @@ typedef enum {
     SOFT_TIMER_SAMPLE_SPEED,    // 50ms   计算编码器 rpm/m/s
     SOFT_TIMER_HEADING_HOLD,    // 20ms   跑一次循迹/航向保持 PD
     SOFT_TIMER_OLED_REFRESH,    // 30ms   OLED 显示
-    SOFT_TIMER_READ_GRAY,       // 20ms   读 8 路灰度
+    SOFT_TIMER_READ_GRAY,       // 10ms   读 8 路灰度
+    SOFT_TIMER_READ_CAMERA,     // 20ms   轮询 MaixCAM 摄像头 UART
     SOFT_TIMER_MAX,
 } soft_timer_type_t;
 

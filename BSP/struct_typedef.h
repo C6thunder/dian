@@ -41,6 +41,10 @@ typedef struct {
     uint8_t gray_raw;     // 8 bit-packed
 
     /* 运行模式 */
+    /* 摄像头（MaixCAM UART 4字节协议） */
+    uint8_t cam_detected;   /* 0=无, 1=有 */
+    uint8_t cam_cmd;        /* 命令: 0x00=无, 0x01~0x08=数字1~8 */
+
     uint8_t run_mode;     // 0=停  1=直行  2=循迹（灰度）  ...
     uint8_t disp_mode;    // OLED 显示模式（0=全信息 1=IMU 大字）
 

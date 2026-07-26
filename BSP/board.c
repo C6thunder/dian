@@ -15,6 +15,7 @@
 #include "soft_timer.h"
 #include "control.h"
 #include "gw_grayscale_sensor.h"
+#include "camera.h"
 #include "IMU/IMU.h"
 /* v4.23：模块是 I2C MPU6050，焊到 PA0(SDA)/PA1(SCL)，软件 I2C 位操作。
  *  - OLED 还在硬件 I2C0 (PA28/PA31)，0x3C
@@ -61,6 +62,8 @@ uint8_t board_init(void)
     motor_init(1);
     motor_init(2);
 
+    camera_init();   /* MaixCAM UART2 (PA23/PA24) */
+
     /* v4.22：调 IMU_init() 走完整 eMPL 链路（mpu_init → mpu_dmp_init →
      * 强制唤醒 PWR_MGMT_1/2 → 直读寄存器 bypass）。谁返 0 就
      * OLED 状态条 W:0xHH 给诊断信息。
@@ -98,6 +101,7 @@ uint8_t board_init(void)
     soft_timer_repeat_init(SOFT_TIMER_HEADING_HOLD, 10);
     soft_timer_repeat_init(SOFT_TIMER_OLED_REFRESH, 30);
     soft_timer_repeat_init(SOFT_TIMER_READ_GRAY,    10);
+    soft_timer_repeat_init(SOFT_TIMER_READ_CAMERA, 20);
     for (int i = 0; i < SOFT_TIMER_MAX; ++i) soft_timer_start((soft_timer_type_t)i);
 
     board_systick_init();   // 1ms SysTick，main 不再 delay

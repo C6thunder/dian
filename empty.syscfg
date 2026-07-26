@@ -21,7 +21,8 @@ const PWM    = scripting.addModule("/ti/driverlib/PWM", {}, false);
 const PWM1   = PWM.addInstance();
 const PWM2   = PWM.addInstance();
 const SYSCTL = scripting.addModule("/ti/driverlib/SYSCTL");
-const VREF   = scripting.addModule("/ti/driverlib/VREF");
+	const UART    = scripting.addModule("/ti/driverlib/UART", {}, false);
+	const UART1   = UART.addInstance();  /* MaixCAM: UART2 PA23=TX PA24=RX 9600 */
 
 /* v4.22：删 UART1 (PRINT)。模块是纯 I2C MPU6050（不是串口版），
  * 不再用硬件 UART 收 MPU 字节流。M3 模块的 RX/TX 改作它用或留空。*/
@@ -202,12 +203,24 @@ PWM2.ccp1PinConfig.onlyInternalResistor = scripting.forceWrite(false);
 PWM2.ccp1PinConfig.passedPeripheralType = scripting.forceWrite("Digital");
 PWM2.ccp1PinConfig.$name                = "ti_driverlib_gpio_GPIOPinGeneric7";
 
+	UART1.$name                    = "MaixCAM";
+	UART1.uartClkDiv                = "4";
+	UART1.targetBaudRate            = 9600;
+	UART1.enabledInterrupts         = ["RX"];
+	UART1.interruptPriority         = "3";
+	UART1.peripheral.$assign       = "UART2";
+	UART1.peripheral.txPin.$assign = "PA23";
+	UART1.peripheral.rxPin.$assign = "PA24";
+	UART1.txPinConfig.direction     = scripting.forceWrite("OUTPUT");
+	UART1.txPinConfig.hideOutputInversion  = scripting.forceWrite(false);
+	UART1.txPinConfig.onlyInternalResistor = scripting.forceWrite(false);
+	UART1.txPinConfig.passedPeripheralType = scripting.forceWrite("Digital");
+	UART1.txPinConfig.$name        = "ti_driverlib_gpio_GPIOPinGeneric9";
+	UART1.rxPinConfig.$name        = "ti_driverlib_gpio_GPIOPinGeneric10";
+
 SYSCTL.forceDefaultClkConfig = true;
 SYSCTL.clockTreeEn           = true;
 
-VREF.basicIntVolt           = "DL_VREF_BUFCONFIG_OUTPUT_2_5V";
-VREF.profile                = "INT_2_5_V";
-VREF.vrefPosPinConfig.$name = "ti_driverlib_gpio_GPIOPinGeneric5";
 
 /**
  * Pinmux solution for unlocked pins/peripherals. This ensures that minor changes to the automatic solver in a future
@@ -222,5 +235,6 @@ Board.peripheral.swclkPin.$suggestSolution         = "PA20";
 Board.peripheral.swdioPin.$suggestSolution         = "PA19";
 PWM1.peripheral.$suggestSolution                   = "TIMA0";
 PWM1.peripheral.ccp2Pin.$suggestSolution           = "PA15";
-VREF.peripheral.$suggestSolution                   = "VREF";
-VREF.peripheral.vrefPosPin.$suggestSolution        = "PA23";
+UART1.peripheral.$suggestSolution          = "UART2";
+UART1.peripheral.txPin.$suggestSolution   = "PA23";
+UART1.peripheral.rxPin.$suggestSolution   = "PA24";
