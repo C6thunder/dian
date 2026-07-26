@@ -1,0 +1,226 @@
+/**
+ * These arguments were used when this file was generated. They will be automatically applied on subsequent loads
+ * via the GUI or CLI. Run CLI with '--help' for additional information on how to override these arguments.
+ * @cliArgs --device "MSPM0G350X" --part "Default" --package "LQFP-64(PM)" --product "mspm0_sdk@2.11.00.07"
+ * @v2CliArgs --device "MSPM0G3507" --package "LQFP-64(PM)" --product "mspm0_sdk@2.11.00.07"
+ * @versions {"tool":"1.26.2+4477"}
+ */
+
+/**
+ * Import the modules used in this configuration.
+ */
+const GPIO   = scripting.addModule("/ti/driverlib/GPIO", {}, false);
+const GPIO1  = GPIO.addInstance();
+const GPIO2  = GPIO.addInstance();
+const GPIO3  = GPIO.addInstance();
+const GPIO4  = GPIO.addInstance();
+const GPIO5  = GPIO.addInstance();  /* v4.23：MPU6050 软件 I2C（PA0/PA1） */
+const I2C    = scripting.addModule("/ti/driverlib/I2C", {}, false);
+const I2C1   = I2C.addInstance();
+const PWM    = scripting.addModule("/ti/driverlib/PWM", {}, false);
+const PWM1   = PWM.addInstance();
+const PWM2   = PWM.addInstance();
+const SYSCTL = scripting.addModule("/ti/driverlib/SYSCTL");
+const VREF   = scripting.addModule("/ti/driverlib/VREF");
+
+/* v4.22：删 UART1 (PRINT)。模块是纯 I2C MPU6050（不是串口版），
+ * 不再用硬件 UART 收 MPU 字节流。M3 模块的 RX/TX 改作它用或留空。*/
+/* v4.23：把当前 serial U41 替换成 I2C MPU6050 模块。
+ * 新模块焊到 PA0(SDA) / PA1(SCL)，用软件 I2C 位操作（DL_GPIO 切方向）。
+ * PA0/PA1 硬件 I2C0 已被 OLED 占用（PA28/PA31），所以走软件 I2C，不挂 I2C 实例。*/
+
+/**
+ * Write custom configuration values to the imported modules.
+ */
+const divider9       = system.clockTree["UDIV"];
+divider9.divideValue = 2;
+
+const multiplier2         = system.clockTree["PLL_QDIV"];
+multiplier2.multiplyValue = 5;
+
+const mux4       = system.clockTree["EXHFMUX"];
+mux4.inputSelect = "EXHFMUX_XTAL";
+
+const mux8       = system.clockTree["HSCLKMUX"];
+mux8.inputSelect = "HSCLKMUX_SYSPLL0";
+
+const pinFunction4     = system.clockTree["HFXT"];
+pinFunction4.inputFreq = 40;
+pinFunction4.enable    = true;
+
+GPIO1.$name                         = "LED";
+GPIO1.associatedPins[0].$name       = "LED1";
+GPIO1.associatedPins[0].pin.$assign = "PB8";
+
+const Board = scripting.addModule("/ti/driverlib/Board", {}, false);
+
+GPIO2.$name                              = "KEY";
+GPIO2.associatedPins.create(4);
+GPIO2.associatedPins[0].$name            = "KEY9";
+GPIO2.associatedPins[0].direction        = "INPUT";
+GPIO2.associatedPins[0].internalResistor = "PULL_DOWN";
+GPIO2.associatedPins[0].interruptEn      = true;
+GPIO2.associatedPins[0].polarity         = "RISE";
+GPIO2.associatedPins[0].pin.$assign      = "PB6";
+GPIO2.associatedPins[1].$name            = "KEY10";
+GPIO2.associatedPins[1].direction        = "INPUT";
+GPIO2.associatedPins[1].internalResistor = "PULL_DOWN";
+GPIO2.associatedPins[1].interruptEn      = true;
+GPIO2.associatedPins[1].polarity         = "RISE";
+GPIO2.associatedPins[1].pin.$assign      = "PB7";
+GPIO2.associatedPins[2].$name            = "KEY11";
+GPIO2.associatedPins[2].direction        = "INPUT";
+GPIO2.associatedPins[2].internalResistor = "PULL_UP";
+GPIO2.associatedPins[2].interruptEn      = true;
+GPIO2.associatedPins[2].polarity         = "FALL";
+GPIO2.associatedPins[2].pin.$assign      = "PB0";
+GPIO2.associatedPins[3].$name            = "KEY12";
+GPIO2.associatedPins[3].direction        = "INPUT";
+GPIO2.associatedPins[3].internalResistor = "PULL_UP";
+GPIO2.associatedPins[3].interruptEn      = true;
+GPIO2.associatedPins[3].polarity         = "FALL";
+GPIO2.associatedPins[3].pin.$assign      = "PB1";
+
+GPIO3.$name                              = "DC_MOTOR";
+GPIO3.associatedPins.create(8);
+GPIO3.associatedPins[0].$name            = "AIN1";
+GPIO3.associatedPins[0].pin.$assign      = "PB17";
+GPIO3.associatedPins[1].$name            = "AIN2";
+GPIO3.associatedPins[1].pin.$assign      = "PB19";
+GPIO3.associatedPins[2].$name            = "AA";
+GPIO3.associatedPins[2].direction        = "INPUT";
+GPIO3.associatedPins[2].interruptEn      = true;
+GPIO3.associatedPins[2].polarity         = "RISE";
+GPIO3.associatedPins[2].internalResistor = "PULL_DOWN";
+GPIO3.associatedPins[2].pin.$assign      = "PA26";
+GPIO3.associatedPins[3].$name            = "AB";
+GPIO3.associatedPins[3].direction        = "INPUT";
+GPIO3.associatedPins[3].internalResistor = "PULL_DOWN";
+GPIO3.associatedPins[3].pin.$assign      = "PA27";
+GPIO3.associatedPins[4].$name            = "BIN1";
+GPIO3.associatedPins[4].pin.$assign      = "PA16";
+GPIO3.associatedPins[5].$name            = "BIN2";
+GPIO3.associatedPins[5].pin.$assign      = "PB24";
+GPIO3.associatedPins[6].$name            = "BA";
+GPIO3.associatedPins[6].direction        = "INPUT";
+GPIO3.associatedPins[6].interruptEn      = true;
+GPIO3.associatedPins[6].polarity         = "RISE";
+GPIO3.associatedPins[6].internalResistor = "PULL_DOWN";
+GPIO3.associatedPins[6].pin.$assign      = "PA25";
+GPIO3.associatedPins[7].$name            = "BB";
+GPIO3.associatedPins[7].direction        = "INPUT";
+GPIO3.associatedPins[7].internalResistor = "PULL_DOWN";
+GPIO3.associatedPins[7].pin.$assign      = "PA14";
+
+GPIO4.$name                         = "GRAY";
+GPIO4.associatedPins.create(8);
+GPIO4.associatedPins[0].$name       = "GRAY1";
+GPIO4.associatedPins[0].direction   = "INPUT";
+GPIO4.associatedPins[0].pin.$assign = "PB27";
+GPIO4.associatedPins[1].$name       = "GRAY2";
+GPIO4.associatedPins[1].direction   = "INPUT";
+GPIO4.associatedPins[1].pin.$assign = "PB26";
+GPIO4.associatedPins[2].$name       = "GRAY3";
+GPIO4.associatedPins[2].direction   = "INPUT";
+GPIO4.associatedPins[2].pin.$assign = "PB23";
+GPIO4.associatedPins[3].$name       = "GRAY4";
+GPIO4.associatedPins[3].direction   = "INPUT";
+GPIO4.associatedPins[3].pin.$assign = "PB13";
+GPIO4.associatedPins[4].$name       = "GRAY5";
+GPIO4.associatedPins[4].direction   = "INPUT";
+GPIO4.associatedPins[4].pin.$assign = "PB12";
+GPIO4.associatedPins[5].$name       = "GRAY6";
+GPIO4.associatedPins[5].direction   = "INPUT";
+GPIO4.associatedPins[5].pin.$assign = "PB16";
+GPIO4.associatedPins[6].$name       = "GRAY7";
+GPIO4.associatedPins[6].direction   = "INPUT";
+GPIO4.associatedPins[6].pin.$assign = "PB15";
+GPIO4.associatedPins[7].$name       = "GRAY8";
+GPIO4.associatedPins[7].direction   = "INPUT";
+GPIO4.associatedPins[7].pin.$assign = "PB5";
+
+GPIO5.$name                              = "MPU6050_SW_I2C";
+GPIO5.associatedPins.create(2);
+GPIO5.associatedPins[0].$name            = "MPU6050_SDA";
+GPIO5.associatedPins[0].direction        = "OUTPUT";
+GPIO5.associatedPins[0].internalResistor = "PULL_UP";
+GPIO5.associatedPins[0].pin.$assign      = "PA0";
+GPIO5.associatedPins[1].$name            = "MPU6050_SCL";
+GPIO5.associatedPins[1].direction        = "OUTPUT";
+GPIO5.associatedPins[1].internalResistor = "PULL_UP";
+GPIO5.associatedPins[1].pin.$assign      = "PA1";
+
+I2C1.$name                     = "I2C_0";
+I2C1.basicEnableController     = true;
+I2C1.basicControllerBusSpeed   = 400000;
+I2C1.advDigitalGlitchFilter    = "CLOCKS_1";
+I2C1.advControllerRXFIFOTRIG   = "BYTES_8";
+I2C1.advControllerTXFIFOTRIG   = "BYTES_7";
+I2C1.enableDMAEvent1           = false;
+I2C1.enableDMAEvent2           = false;
+I2C1.peripheral.$assign        = "I2C0";
+I2C1.peripheral.sdaPin.$assign = "PA28";
+I2C1.peripheral.sclPin.$assign = "PA31";
+I2C1.sdaPinConfig.$name        = "ti_driverlib_gpio_GPIOPinGeneric6";
+I2C1.sclPinConfig.$name        = "ti_driverlib_gpio_GPIOPinGeneric8";
+
+PWM1.$name                              = "SERVO";
+PWM1.clockDivider                       = 8;
+PWM1.clockPrescale                      = 100;
+PWM1.pwmMode                            = "EDGE_ALIGN_UP";
+/* v4.23：使用 TIMA0_CCP2（PA15）。SysConfig 在 LQFP-64(PM) 上报错 PA15 -> CCP3 不可用，
+ * 因为 PA15 在该封装上是 TIMA0_CCP2 不是 CCP3（用户硬件表"舵机1 PWM: PA15 TIM0_CH2"
+ * 的 CH2 = 通道 2 = CCP2）。channel 2 在 PA15 上有效，能给 LED1 (PB8) 让位 PA15 给 SERVO。 */
+PWM1.ccIndex                            = [2];
+PWM1.timerCount                         = 2000;
+PWM1.timerStartTimer                    = true;
+PWM1.PWM_CHANNEL_2.$name                = "ti_driverlib_pwm_PWMTimerCCSERVO2";
+PWM1.PWM_CHANNEL_2.ccValue              = 150;
+PWM1.ccp2PinConfig.direction            = scripting.forceWrite("OUTPUT");
+PWM1.ccp2PinConfig.hideOutputInversion  = scripting.forceWrite(false);
+PWM1.ccp2PinConfig.onlyInternalResistor = scripting.forceWrite(false);
+PWM1.ccp2PinConfig.passedPeripheralType = scripting.forceWrite("Digital");
+PWM1.ccp2PinConfig.$name                = "ti_driverlib_gpio_GPIOPinGeneric3";
+
+PWM2.$name                              = "PWMA";
+PWM2.timerStartTimer                    = true;
+PWM2.timerCount                         = 4000;
+PWM2.pwmMode                            = "EDGE_ALIGN_UP";
+PWM2.peripheral.$assign                 = "TIMG0";
+PWM2.peripheral.ccp0Pin.$assign         = "PA12";
+PWM2.peripheral.ccp1Pin.$assign         = "PA13";
+PWM2.PWM_CHANNEL_0.$name                = "ti_driverlib_pwm_PWMTimerCC1";
+PWM2.PWM_CHANNEL_1.$name                = "ti_driverlib_pwm_PWMTimerCC2";
+PWM2.ccp0PinConfig.direction            = scripting.forceWrite("OUTPUT");
+PWM2.ccp0PinConfig.hideOutputInversion  = scripting.forceWrite(false);
+PWM2.ccp0PinConfig.onlyInternalResistor = scripting.forceWrite(false);
+PWM2.ccp0PinConfig.passedPeripheralType = scripting.forceWrite("Digital");
+PWM2.ccp0PinConfig.$name                = "ti_driverlib_gpio_GPIOPinGeneric1";
+PWM2.ccp1PinConfig.direction            = scripting.forceWrite("OUTPUT");
+PWM2.ccp1PinConfig.hideOutputInversion  = scripting.forceWrite(false);
+PWM2.ccp1PinConfig.onlyInternalResistor = scripting.forceWrite(false);
+PWM2.ccp1PinConfig.passedPeripheralType = scripting.forceWrite("Digital");
+PWM2.ccp1PinConfig.$name                = "ti_driverlib_gpio_GPIOPinGeneric7";
+
+SYSCTL.forceDefaultClkConfig = true;
+SYSCTL.clockTreeEn           = true;
+
+VREF.basicIntVolt           = "DL_VREF_BUFCONFIG_OUTPUT_2_5V";
+VREF.profile                = "INT_2_5_V";
+VREF.vrefPosPinConfig.$name = "ti_driverlib_gpio_GPIOPinGeneric5";
+
+/**
+ * Pinmux solution for unlocked pins/peripherals. This ensures that minor changes to the automatic solver in a future
+ * version of the tool will not impact the pinmux you originally saw.  These lines can be completely deleted in order to
+ * re-solve from scratch.
+ */
+pinFunction4.peripheral.$suggestSolution           = "SYSCTL";
+pinFunction4.peripheral.hfxInPin.$suggestSolution  = "PA5";
+pinFunction4.peripheral.hfxOutPin.$suggestSolution = "PA6";
+Board.peripheral.$suggestSolution                  = "DEBUGSS";
+Board.peripheral.swclkPin.$suggestSolution         = "PA20";
+Board.peripheral.swdioPin.$suggestSolution         = "PA19";
+PWM1.peripheral.$suggestSolution                   = "TIMA0";
+PWM1.peripheral.ccp2Pin.$suggestSolution           = "PA15";
+VREF.peripheral.$suggestSolution                   = "VREF";
+VREF.peripheral.vrefPosPin.$suggestSolution        = "PA23";

@@ -1,0 +1,3 @@
+- [项目完整快照 readme.md](readme.md) — 硬件/引脚/工具链/踩坑/已实现功能全在这一份里，先读它
+- [MSPM0G3507 踩坑记录](ti-mspm0g3507-pitfalls.md) — SysConfig I2C 复用、宏名顺序、PA10/PA11 单向、snprintf 缓冲区、GPIO IRQ 共享
+- [项目上下文指针](project-readme-pointer.md) — 指向项目源里那份 `09_PWM_SERVO/readme.md`（与上面是同一份内容，源在项目里方便跟代码一起走）
