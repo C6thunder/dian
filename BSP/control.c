@@ -13,6 +13,7 @@
 #define TRACE_KD       20        /* 微分系数 */
 #define TRACE_DEAD      3        /* 死区：|corr|<3 不修正 */
 #define TRACE_BASE     1100      /* 基础速度 (CCR, 0~4000) */
+#define TRACE_EMA       0.3f     /* EMA 平滑系数（越小越平滑） */
 #define TRACE_MIN      300       /* 最低占空比 */
 #define TRACE_MAX      3500      /* 最高占空比 */
 
@@ -42,18 +43,26 @@ static int gray_to_error(void)
 /* ========== 循迹 ========== */
 void control_line_trace(void)
 {
-    static int last_err = 0;
-    static int first    = 1;
+    static float err_f = 0.0f;   /* EMA 滤波后的误差 */
+    static int   first  = 1;
 
-    int err = gray_to_error();
+    int err_raw = gray_to_error();
 
-    /* P + D */
-    int P = TRACE_KP * err;
-    int D = first ? 0 : TRACE_KD * (err - last_err);
-    last_err = err;
-    first    = 0;
+    /* EMA 平滑 */
+    if (first) {
+        err_f = (float)err_raw;
+        first = 0;
+    } else {
+        err_f = err_f * (1.0f - TRACE_EMA) + (float)err_raw * TRACE_EMA;
+    }
 
-    int corr = P + D;
+    /* P + D（基于平滑误差） */
+    static float last_err = 0.0f;
+    float P = TRACE_KP * err_f;
+    float D = TRACE_KD * (err_f - last_err);
+    last_err = err_f;
+
+    int corr = (int)(P + D);
 
     /* 死区：微小修正直接忽略，避免高频抖动 */
     if (corr > -TRACE_DEAD && corr < TRACE_DEAD) corr = 0;
