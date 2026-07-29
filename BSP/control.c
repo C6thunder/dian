@@ -13,7 +13,7 @@
 #define TRACE_KD       20        /* 微分系数 */
 #define TRACE_DEAD      3        /* 死区：|corr|<3 不修正 */
 #define TRACE_BASE     1100      /* 基础速度 (CCR, 0~4000) */
-#define TRACE_EMA       0.3f     /* EMA 平滑系数（越小越平滑） */
+#define TRACE_EMA       0.4f     /* EMA 平滑系数（越小越平滑） */
 #define TRACE_MIN      300       /* 最低占空比 */
 #define TRACE_MAX      3500      /* 最高占空比 */
 
