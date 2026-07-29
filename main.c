@@ -37,8 +37,8 @@ static int16_t g_gx_raw = 0, g_gy_raw = 0, g_gz_raw = 0;
  *     GZ_EMA_ALPHA      = 0.25 ← 越小滤波越狠；0.25 → ~3 帧平均（≈60ms）
  */
 static float g_gz_filtered = 0.0f;
-#define GZ_DEAD_ZONE_DPS   0.5f
-#define GZ_EMA_ALPHA       0.25f
+#define GZ_DEAD_ZONE_DPS   0.1f  /* 死区降到 0.1，不吞弯道信号 */
+#define GZ_EMA_ALPHA       0.5f  /* EMA 更快响应 */
 
 /* IMU 诊断：上次 IMU_getData / IMU_getGyro 返回码（0=成功, 1/2=失败）
  *    mpu_dmp_get_data: 0=OK  1=FIFO 读失败  2=无四元数
@@ -211,41 +211,36 @@ static void oled_show_imu_big(void)
  *   - 如果 M1-M2 的差 < 500 duty → max_out 没拉到位
  *   - 如果 Gz 还是 0 但 M1/M2 差很大 → 电机/接线问题
  */
-/* v11 精简调试屏：4 行 16px 间距，只显示循迹调试核心字段 */
+/* 精简调试屏：4 行 12px，显示循迹核心字段 */
 static void oled_show_trace_dbg(void)
 {
     char line[32];
 
-    /* 行 0（y=0）：摄像头识别的数字 + 灰度原始值 */
-    {
-        if (car.cam_detected) {
-            snprintf(line, sizeof(line), "num:%d GR:%02X",
-                     car.cam_cmd, (unsigned)car.gray_raw);
-        } else {
-            snprintf(line, sizeof(line), "num:-- GR:%02X",
-                     (unsigned)car.gray_raw);
-        }
-        OLED_ShowString(0, 0, (u8 *)line, 12);
-    }
+    /* 行 0（y=0）：灰度原始值 + 8路黑线状态 */
+    snprintf(line, sizeof(line), "GR:%02X %d%d%d%d%d%d%d%d",
+             (unsigned)car.gray_raw,
+             car.gray[0], car.gray[1], car.gray[2], car.gray[3],
+             car.gray[4], car.gray[5], car.gray[6], car.gray[7]);
+    OLED_ShowString(0, 0, (u8 *)line, 12);
 
-    /* 行 1（y=16）：error + gyro_damp */
-    {
-        float er = control_get_line_pos_err();
-        float gd = control_get_gyro_damp();
-        snprintf(line, sizeof(line), "e:%+4.0f d:%+4.0f", er, gd);
-        OLED_ShowString(0, 16, (u8 *)line, 12);
-    }
-
-    /* 行 2（y=32）：L/R duty */
+    /* 行 1（y=16）：L/R duty */
     snprintf(line, sizeof(line), "L:%-5u R:%-5u",
              (unsigned)car.left_duty, (unsigned)car.right_duty);
+    OLED_ShowString(0, 16, (u8 *)line, 12);
+
+    /* 行 2（y=32）：陀螺 Z + 编码器速度 */
+    snprintf(line, sizeof(line), "Gz:%+5.0f/s %c%1d.%02dm/s",
+             car.gz_dps,
+             car.left_ms < 0 ? '-' : ' ',
+             (int)(car.left_ms < 0 ? -car.left_ms : car.left_ms),
+             (int)((car.left_ms < 0 ? -car.left_ms : car.left_ms) * 100.0f + 0.5f) % 100);
     OLED_ShowString(0, 32, (u8 *)line, 12);
 
-    /* 行 3（y=48）：摄像头调试 + LED提示 */
-    snprintf(line, sizeof(line), "rx:%lu f:%lu Gz:%+4.0f",
+    /* 行 3（y=48）：摄像头 + 帧计数 */
+    snprintf(line, sizeof(line), "cam:%c rx:%lu f:%lu",
+             car.cam_detected ? '0' + car.cam_cmd : '-',
              (unsigned long)g_cam_rx_bytes,
-             (unsigned long)g_cam_rx_frames,
-             car.gz_dps);
+             (unsigned long)g_cam_rx_frames);
     OLED_ShowString(0, 48, (u8 *)line, 12);
 }
 

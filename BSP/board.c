@@ -89,8 +89,8 @@ uint8_t board_init(void)
     /* 左右通道已对调（见 motor.h 的 LEFT_MOTOR_ID / RIGHT_MOTOR_ID 注释） */
     motor_set_direction(LEFT_MOTOR_ID,  1);
     motor_set_direction(RIGHT_MOTOR_ID, 1);
-    motor_set_duty(LEFT_MOTOR_ID,  900U);
-    motor_set_duty(RIGHT_MOTOR_ID, 900U);
+    motor_set_duty(LEFT_MOTOR_ID,  0U);   /* 启动时不转，等待控制环接管 */
+    motor_set_duty(RIGHT_MOTOR_ID, 0U);
 
     control_init();
     car.run_mode = 2;     /* 默认进入循迹模式（TRACE） */

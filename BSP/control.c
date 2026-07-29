@@ -1,210 +1,116 @@
-/* ===========================================================================
- * control.c — 8 路灰度循迹 + 航向保持
+/*
+ * control.c — 简洁 PD 循迹 + 航向保持
  *
- * 单环 PD + 陀螺阻尼：error → PD → 减 gyro 阻尼 → 电机差速
- * =========================================================================*/
+ * 循迹：纯 PD（比例+微分），直接从 8 路灰度算误差 → 修正左右轮差速
+ * 公式：err = 加权误差,  corr = Kp*err + Kd*(err - last_err)
+ *       L = BASE - corr,  R = BASE + corr
+ */
+
 #include "control.h"
-#include "struct_typedef.h"
-#include "motor.h"
 
-#ifndef GRAY_INVERT
-#define GRAY_INVERT  0
-#endif
+/* ========== 循迹 PD 参数 ========== */
+#define TRACE_KP       10        /* 比例系数 */
+#define TRACE_KD       20        /* 微分系数 */
+#define TRACE_DEAD      3        /* 死区：|corr|<3 不修正 */
+#define TRACE_BASE     1100      /* 基础速度 (CCR, 0~4000) */
+#define TRACE_MIN      300       /* 最低占空比 */
+#define TRACE_MAX      3500      /* 最高占空比 */
 
-#define DIRECTION_FLIP  1
-
-#define TRACE_KP    38
-#define TRACE_KI    0.0f
-#define TRACE_KD    60
-#define TRACE_EMA   0.2f  /* ~5帧渐进 */
-#define TRACE_KY    0.5f
-#define TRACE_GYRO_DEAD  5
-#define TRACE_D_CLAMP  800
-#define TRACE_I_CLAMP  400
-
-static const int G_BASE_SPEED = 700;
-#define TRACE_DUTY_MIN  150
-#define TRACE_MAX_DELTA  400
-#define MOTOR_TRIM_L    0    /* 左轮偏置：左快则负，左慢则正 */
-#define MOTOR_TRIM_R    0    /* 右轮偏置 */
-
-static float    g_error_ema  = 0.0f; /* EMA 平滑值 */
-static float    g_error_i    = 0.0f; /* I 累积 */
-static int      g_last_error = 0;
-static int      g_first_frame = 1;
-static int      g_last_pid_out = 0;   /* 输出增量平滑 */
-static int      g_last_valid  = 0;  /* 丢线记忆方向 */
-static int      g_error_now  = 0;
-static int      g_gyro_damp  = 0;
-static uint16_t g_left       = 0;
-static uint16_t g_right      = 0;
-
-/* ===== Get_Error() 连续加权位置 ===== */
-static int Get_Error(void)
+/* ========== 8 路灰度 → 位置误差 ==========
+ * 权重表：中间传感器权重小，两边大（离中心越远，err 越大）
+ * channel:  1   2   3   4   5   6   7   8
+ * weight: -40 -30 -15  -3  +3 +15 +30 +40
+ * 返回 -40..+40：负=偏左, 正=偏右, 0=居中 */
+static int gray_to_error(void)
 {
-    /* 传感器位置：左边正，右边负。err>0→线在左→左转 */
-    static const int pos[8] = {40, 30, 15, 5, -5, -15, -30, -40};
+    static const int w[8] = {40, 30, 15, 3, -3, -15, -30, -40};
+    int sum_w = 0, cnt = 0;
 
-    int sum_pos = 0, sum_cnt = 0;
-    for (int i = 0; i < 8; ++i) {
-        int black = (GRAY_INVERT ? (car.gray[i] != 0U)
-                                 : (car.gray[i] == 0U));
-        if (black) {
-            sum_pos += pos[i];
-            sum_cnt++;
+    for (int i = 0; i < 8; i++) {
+        if (car.gray[i] == 0U) {   /* 0=压在黑线上 */
+            sum_w += w[i];
+            cnt++;
         }
     }
 
-    if (sum_cnt == 0) return 0;   /* 全白 */
-    if (sum_cnt == 8) return 0;   /* 全黑 */
+    /* 全部白/全部黑 → 居中 */
+    if (cnt == 0 || cnt == 8) return 0;
 
-    return sum_pos / sum_cnt;     /* 加权平均，连续值 */
+    return sum_w / cnt;
 }
 
-/* ===== 单环 PD + 陀螺阻尼 ===== */
+/* ========== 循迹 ========== */
 void control_line_trace(void)
 {
-    int error_raw = Get_Error();
+    static int last_err = 0;
+    static int first    = 1;
 
-    /* 丢线记忆：全白时用最后方向 */
-    if (error_raw == 0 && g_last_valid != 0) {
-        error_raw = g_last_valid;
-    } else if (error_raw != 0) {
-        g_last_valid = error_raw;
-    }
+    int err = gray_to_error();
 
-    /* EMA 平滑：离散跳变 → 多帧渐进过渡 */
-    g_error_ema = g_error_ema * (1.0f - TRACE_EMA)
-                + (float)error_raw * TRACE_EMA;
-    int error_smooth = (int)(g_error_ema + 0.5f);
+    /* P + D */
+    int P = TRACE_KP * err;
+    int D = first ? 0 : TRACE_KD * (err - last_err);
+    last_err = err;
+    first    = 0;
 
-    /* 死区：加宽滤微抖 */
-    if (error_smooth >= -4 && error_smooth <= 4) error_smooth = 0;
-    g_error_now = error_smooth;
+    int corr = P + D;
 
-    int P = TRACE_KP * error_smooth;
+    /* 死区：微小修正直接忽略，避免高频抖动 */
+    if (corr > -TRACE_DEAD && corr < TRACE_DEAD) corr = 0;
 
-    /* D 也用平滑值差分，和 P 同步渐进 */
-    int D_raw = g_first_frame ? 0 : TRACE_KD * (error_smooth - g_last_error);
-    g_first_frame = 0;
-    if (D_raw >  TRACE_D_CLAMP) D_raw =  TRACE_D_CLAMP;
-    if (D_raw < -TRACE_D_CLAMP) D_raw = -TRACE_D_CLAMP;
-    int D = D_raw;
+    /* 左右轮差速：L = BASE - corr,  R = BASE + corr */
+    int L = (int)TRACE_BASE - corr;
+    int R = (int)TRACE_BASE + corr;
 
-    g_last_error = error_smooth;
+    if (L < TRACE_MIN) L = TRACE_MIN;
+    if (L > TRACE_MAX) L = TRACE_MAX;
+    if (R < TRACE_MIN) R = TRACE_MIN;
+    if (R > TRACE_MAX) R = TRACE_MAX;
 
-    /* I：累积误差，死区内清零防饱卷 */
-    if (error_smooth == 0) {
-        g_error_i = 0.0f;
-    } else {
-        g_error_i += TRACE_KI * error_smooth * 0.01f;  /* dt=10ms=0.01s */
-        if (g_error_i >  TRACE_I_CLAMP) g_error_i =  TRACE_I_CLAMP;
-        if (g_error_i < -TRACE_I_CLAMP) g_error_i = -TRACE_I_CLAMP;
-    }
-    int I = (int)g_error_i;
-
-    /* 陀螺阻尼：死区滤噪声 */
-    float gz = car.gz_dps;
-    if (gz > -TRACE_GYRO_DEAD && gz < TRACE_GYRO_DEAD) gz = 0.0f;
-    float gyro_damp = TRACE_KY * gz;
-    g_gyro_damp = (int)gyro_damp;
-
-    int pid_out_raw = (int)((P + I + D - gyro_damp) / 2.0f);
-
-    /* 输出增量平滑：限制每帧变化 ≤ MAX_DELTA，防猛加猛减 */
-    int delta = pid_out_raw - g_last_pid_out;
-    if (delta >  TRACE_MAX_DELTA) delta =  TRACE_MAX_DELTA;
-    if (delta < -TRACE_MAX_DELTA) delta = -TRACE_MAX_DELTA;
-    int pid_out = g_last_pid_out + delta;
-    g_last_pid_out = pid_out;
-
-#if DIRECTION_FLIP
-    int sL = G_BASE_SPEED - pid_out;
-    int sR = G_BASE_SPEED + pid_out;
-#else
-    int sL = G_BASE_SPEED + pid_out;
-    int sR = G_BASE_SPEED - pid_out;
-#endif
-
-    if (sL < TRACE_DUTY_MIN) sL = TRACE_DUTY_MIN;
-    if (sR < TRACE_DUTY_MIN) sR = TRACE_DUTY_MIN;
-
-    motor_set_direction(LEFT_MOTOR_ID,  1U);
-    motor_set_duty(LEFT_MOTOR_ID,  (uint16_t)sL);
-    motor_set_direction(RIGHT_MOTOR_ID, 1U);
-    motor_set_duty(RIGHT_MOTOR_ID, (uint16_t)sR);
-
-    g_left  = (uint16_t)sL;
-    g_right = (uint16_t)sR;
-    car.left_duty  = g_left;
-    car.right_duty = g_right;
+    car.left_duty  = (uint16_t)L;
+    car.right_duty = (uint16_t)R;
 }
 
-/* ===== 航向保持 ===== */
-static HeadingCfg_t g_hcfg;
+/* ========== 航向保持（简单 PD） ========== */
+static struct {
+    uint16_t base, min, max;
+    float    kp, kd;
+    float    dead_deg;
+    float    clamp_deg;
+} g_hh;
 
 void control_heading_hold(void)
 {
     float err = car.yaw;
-    if (err >  g_hcfg.clamp_deg) err =  g_hcfg.clamp_deg;
-    if (err < -g_hcfg.clamp_deg) err = -g_hcfg.clamp_deg;
 
-    float p = 0.0f, d = 0.0f;
-    if (err > g_hcfg.dead_deg || err < -g_hcfg.dead_deg) {
-        p =  g_hcfg.kp * err;
-        d = -g_hcfg.kd * car.gz_dps;
-    }
-    float corr = p + d;
+    /* 死区 + 限幅 */
+    if (err > -g_hh.dead_deg && err < g_hh.dead_deg) err = 0.0f;
+    if (err >  g_hh.clamp_deg) err =  g_hh.clamp_deg;
+    if (err < -g_hh.clamp_deg) err = -g_hh.clamp_deg;
 
-    int base = (int)g_hcfg.base_duty;
-    int l = base - (int)corr;
-    int r = base + (int)corr;
+    float P = g_hh.kp * err;
+    float D = -g_hh.kd * car.gz_dps;   /* 陀螺 Z 阻尼 */
 
-    if (l < (int)g_hcfg.duty_min) l = (int)g_hcfg.duty_min;
-    if (l > (int)g_hcfg.duty_max) l = (int)g_hcfg.duty_max;
-    if (r < (int)g_hcfg.duty_min) r = (int)g_hcfg.duty_min;
-    if (r > (int)g_hcfg.duty_max) r = (int)g_hcfg.duty_max;
+    int L = (int)g_hh.base - (int)(P + D);
+    int R = (int)g_hh.base + (int)(P + D);
 
-    g_left  = (uint16_t)l;
-    g_right = (uint16_t)r;
-    car.left_duty  = g_left;
-    car.right_duty = g_right;
+    if (L < (int)g_hh.min) L = (int)g_hh.min;
+    if (L > (int)g_hh.max) L = (int)g_hh.max;
+    if (R < (int)g_hh.min) R = (int)g_hh.min;
+    if (R > (int)g_hh.max) R = (int)g_hh.max;
 
-    motor_set_direction(LEFT_MOTOR_ID,  1U);
-    motor_set_duty(LEFT_MOTOR_ID,  g_left);
-    motor_set_direction(RIGHT_MOTOR_ID, 1U);
-    motor_set_duty(RIGHT_MOTOR_ID, g_right);
+    car.left_duty  = (uint16_t)L;
+    car.right_duty = (uint16_t)R;
 }
 
-/* ===== 初始化 + getter ===== */
+/* ========== 初始化 ========== */
 void control_init(void)
 {
-    g_hcfg.base_duty = 900U;
-    g_hcfg.duty_min  = 400U;
-    g_hcfg.duty_max  = 2400U;
-    g_hcfg.kp        = 30.0f;
-    g_hcfg.kd        = 1.5f;
-    g_hcfg.dead_deg  = 1.0f;
-    g_hcfg.clamp_deg = 30.0f;
-
-    g_error_ema   = 0.0f;
-    g_error_i     = 0.0f;
-    g_last_error  = 0;
-    g_first_frame  = 1;
-    g_last_pid_out = 0;
-    g_last_valid   = 0;
-    g_error_now    = 0;
-    g_gyro_damp  = 0;
-    g_left = g_right = 0;
+    g_hh.base     = 900U;
+    g_hh.min      = 400U;
+    g_hh.max      = 2400U;
+    g_hh.kp       = 30.0f;
+    g_hh.kd       = 1.5f;
+    g_hh.dead_deg = 1.0f;
+    g_hh.clamp_deg = 30.0f;
 }
-
-float control_get_line_pos_err(void)       { return (float)g_error_now; }
-float control_get_line_error_raw(void)      { return (float)g_error_now; }
-float control_get_gyro_damp(void)          { return (float)g_gyro_damp; }
-float control_get_line_valid_err(void)     { return (float)g_error_now; }
-float control_get_yaw_drift(void)          { return 0.0f; }
-uint32_t control_get_lost_ms(void)         { return 0U; }
-int    control_is_lost(void)               { return 0; }
-int    control_get_last_valid_error(void)   { return 0; }
-uint16_t control_get_left_duty(void)       { return g_left;  }
-uint16_t control_get_right_duty(void)      { return g_right; }
