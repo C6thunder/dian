@@ -47,17 +47,7 @@ static int gray_to_error(void)
     return sum_w / cnt;
 }
 
-/* 黑线传感器数量 */
-static int black_count(void)
-{
-    int n = 0;
-    for (int i = 0; i < 8; i++) {
-        if (car.gray[i] == 0U) n++;
-    }
-    return n;
-}
-
-/* ========== 循迹（距离 + 误差突变停） ========== */
+/* ========== 循迹（距离 + 2帧并集停） ========== */
 typedef enum { RUN, DONE } trace_state_t;
 
 void control_line_trace(void)

@@ -122,33 +122,6 @@ static void oled_show_count(uint8_t y)
     OLED_ShowString(0, y, (u8 *)line, 12);
 }
 
-/* 在 OLED 第 0 模式（速度屏）的 y=48 行尾追加 IMU 状态：
- *     "IMU D:0 G:0  fail:123/456"
- *   - D / G 是 IMU_getData / IMU_getGyro 的最新返回码（0=成功）
- *   - fail / total 统计丢码率，方便判断 FIFO 是否真的在进数据
- */
-static void oled_imu_health(uint8_t y)
-{
-    /* 最坏约 42 字符："IMU D:255 G:255 fail:4294967295/4294967295"
-     * 原 line[32] 被 snprintf 截断 → OLED 上看不到完整 fail 计数，
-     * 是早期 IMU 全 0 故障无法诊断的原因之一。48 留余量。 */
-    char line[48];
-    snprintf(line, sizeof(line), "IMU D:%u G:%u fail:%lu/%lu",
-             g_imu_dmp_rc, g_imu_gyro_rc,
-             (unsigned long)g_imu_fail_cnt,
-             (unsigned long)g_imu_read_cnt);
-    OLED_ShowString(0, y, (u8 *)line, 12);
-}
-
-static void oled_show_imu(uint8_t y)
-{
-    char line[32];
-    /* 紧凑到 ~14 字符："Yaw:  +90 P:+0"  → 把更重要的 yaw 放前，pitch 留作右侧 */
-    snprintf(line, sizeof(line), "Y:%+5.0f P:%+4.0f",
-             g_yaw, g_pitch);
-    OLED_ShowString(0, y, (u8 *)line, 12);
-}
-
 /* v4.22 调试期间：每个屏的第一行强制显示 IMU 状态条。
  *   格式（紧凑 ≤21 字符，能塞进 128 px）：
  *     "U:字 W:HH D?G? cnt/fail"
@@ -178,22 +151,6 @@ static void oled_show_status_bar(void)
              (unsigned)(g_imu_read_cnt % 10000U),
              (unsigned)(g_imu_fail_cnt % 10000U));
     OLED_ShowString(0, 0, (u8 *)line, 12);
-}
-
-static void oled_show_imu_big(void)
-{
-    /* 改成 12px 字体：4 行 × 12px = 占 y=0..47
-     * 把 y=48..59 留给 oled_imu_health（12px），y=60..63 是空隙；
-     * 原 16px 在 y=48 那行就会和 y=56 的 health 重叠 / 超出 64px 屏。 */
-    char line[32];
-    snprintf(line, sizeof(line), "P :%+6.1f",   g_pitch);
-    OLED_ShowString(0, 0,  (u8 *)line, 12);
-    snprintf(line, sizeof(line), "R :%+6.1f",   g_roll);
-    OLED_ShowString(0, 12, (u8 *)line, 12);
-    snprintf(line, sizeof(line), "Y :%+5.0f",   g_yaw);
-    OLED_ShowString(0, 24, (u8 *)line, 12);
-    snprintf(line, sizeof(line), "Gz:%+6.1f/s", g_gz);
-    OLED_ShowString(0, 36, (u8 *)line, 12);
 }
 
 /* 第 3 模式（调试）：v4.6 简洁版 — 只显示最重要的 4 个指标
