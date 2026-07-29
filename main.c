@@ -6,19 +6,19 @@
  */
 
 #include "ti_msp_dl_config.h"
-#include "BSP/Delay.h"
+#include "BSP/utils/Delay.h"
 #include "ndrivers/oled.h"
 #include <stdio.h>
 #include "BSP/struct_typedef.h"
-#include "BSP/soft_timer.h"
+#include "BSP/utils/soft_timer.h"
 #include "BSP/board.h"
-#include "BSP/control.h"
-#include "BSP/encoder.h"
-#include "BSP/motor.h"        /* LEFT_MOTOR_ID / RIGHT_MOTOR_ID */
-#include "BSP/gw_grayscale_sensor.h"
-#include "BSP/camera.h"
-#include "BSP/IMU/IMU.h"
-#include "BSP/IMU/mpu6050.h"
+#include "BSP/control/control.h"
+#include "BSP/motor/encoder.h"
+#include "BSP/motor/motor.h"        /* LEFT_MOTOR_ID / RIGHT_MOTOR_ID */
+#include "BSP/sensors/gw_grayscale_sensor.h"
+#include "BSP/sensors/camera.h"
+#include "BSP/sensors/IMU/IMU.h"
+#include "BSP/sensors/IMU/mpu6050.h"
 /* v4.22：删 ndrivers/uart.h。模块是纯 I2C MPU6050（不是串口版），
  * 走 DL_I2C0 (PA28/PA31) 直接轮询寄存器，不再用任何 UART 路径。*/
 

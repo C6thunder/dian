@@ -19,11 +19,11 @@
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
-#include "inv_mpu.h"
-#include "inv_mpu_dmp_motion_driver.h"
-#include "dmpKey.h"
-#include "dmpmap.h"
-/* 原参考 #include "board.h" 已移除：
+#include "BSP/sensors/eMPL/inv_mpu.h"
+#include "BSP/sensors/eMPL/inv_mpu_dmp_motion_driver.h"
+#include "BSP/sensors/eMPL/dmpKey.h"
+#include "BSP/sensors/eMPL/dmpmap.h"
+/* 原参考 #include "BSP/board.h" 已移除：
  *   我们走 MOTION_DRIVER_TARGET_MSP430 分支，里面把 delay_ms/get_ms/log_i/log_e
  *   都直接宏定义到 delay_1ms/mget_ms/printf，不需要 board.h。
  *   i2c_write/i2c_read 也在 inv_mpu.c 提供。 */

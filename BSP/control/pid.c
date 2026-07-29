@@ -2,7 +2,7 @@
  * pid.c
  *  - DJI 通用 PID 实现（移植自参考项目 pid.c，去掉中英文双语注释）
  * =========================================================================*/
-#include "pid.h"
+#include "BSP/control/pid.h"
 #include <stddef.h>     /* NULL */
 
 #define LIMIT(input, max) do {            \

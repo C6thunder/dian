@@ -3,20 +3,20 @@
  *  - 上电初始化总入口
  *  - SysTick 1ms 中断推进 g_tick_ms + soft_timer_tick()
  * =========================================================================*/
-#include "board.h"
+#include "BSP/board.h"
 #include "ti_msp_dl_config.h"
 #include <core_cm0plus.h>      // SysTick_Config / SysTick_IRQn
-#include "Delay.h"
+#include "BSP/utils/Delay.h"
 #include "ndrivers/oled.h"
-#include "motor.h"
-#include "encoder.h"
-#include "IMU/mpu6050.h"
-#include "key.h"
-#include "soft_timer.h"
-#include "control.h"
-#include "gw_grayscale_sensor.h"
-#include "camera.h"
-#include "IMU/IMU.h"
+#include "BSP/motor/motor.h"
+#include "BSP/motor/encoder.h"
+#include "BSP/sensors/IMU/mpu6050.h"
+#include "BSP/sensors/key.h"
+#include "BSP/utils/soft_timer.h"
+#include "BSP/control/control.h"
+#include "BSP/sensors/gw_grayscale_sensor.h"
+#include "BSP/sensors/camera.h"
+#include "BSP/sensors/IMU/IMU.h"
 /* v4.23：模块是 I2C MPU6050，焊到 PA0(SDA)/PA1(SCL)，软件 I2C 位操作。
  *  - OLED 还在硬件 I2C0 (PA28/PA31)，0x3C
  *  - MPU6050 在 PA0/PA1 软件 I2C，0x68，地址不冲突

@@ -22,10 +22,10 @@
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
-#include "inv_mpu.h"
-#include "inv_mpu_dmp_motion_driver.h"
-#include "dmp_port.h"
-#include "BSP/Delay.h"   // delay_ms() 在 main.c 跑 DMP 流程时被调用
+#include "BSP/sensors/eMPL/inv_mpu.h"
+#include "BSP/sensors/eMPL/inv_mpu_dmp_motion_driver.h"
+#include "BSP/sensors/eMPL/dmp_port.h"
+#include "BSP/utils/Delay.h"   // delay_ms() 在 main.c 跑 DMP 流程时被调用
 /* 原参考 #include "bsp_mpu6050.h" / "board.h" 已移除：
  *   我们用 BSP/IMU/mpu6050.c 提供 MPU6050_WriteReg/ReadData（走 dmp_port.c），
  *   board.h 已被 dmp_port.h 里的 stdint 替代。 */

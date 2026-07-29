@@ -7,7 +7,7 @@
  *  - 注：当前 8 个 pin 都在 GPIOB 上，所以模块级 GRAY_PORT = GPIOB；
  *        若以后分到 GPIOA/B 两个端口，得换成 per-pin _PORT 宏（GRAY_GRAYx_PORT）
  * =========================================================================*/
-#include "gw_grayscale_sensor.h"
+#include "BSP/sensors/gw_grayscale_sensor.h"
 #include "ti_msp_dl_config.h"
 
 /* SysConfig 生成的端口/位掩码表（按 CH1..CH8 顺序对应 bit0..bit7） */

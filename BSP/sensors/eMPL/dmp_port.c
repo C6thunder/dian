@@ -3,7 +3,7 @@
  *  - eMPL 平台适配：把 inv_mpu.c 用到的 MPU6050 WriteReg/ReadData + mget_ms 映射到本项目
  *  - 这层不要依赖任何 inv_mpu.c 的内部
  * =========================================================================*/
-#include "dmp_port.h"
+#include "BSP/sensors/eMPL/dmp_port.h"
 #include "BSP/struct_typedef.h"   // g_tick_ms
 #include "ti_msp_dl_config.h"
 
@@ -11,7 +11,7 @@
  * 我们的 mpu6050.c 已经做过 i2c_start/i2c_send_byte... 这里用 SysConfig 生成的
  * I2C 句柄，但 MSPM0 的 I2C0 已被 OLED 占用，所以走 GPIO 位操作。
  * 这里直接复用 mpu6050.c 的位操作：它的函数都是 static，要靠写 reg 一次多字节。 */
-#include "BSP/IMU/mpu6050.h"
+#include "BSP/sensors/IMU/mpu6050.h"
 
 #define MPU_ADDR   0x68U
 

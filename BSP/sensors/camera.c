@@ -2,8 +2,8 @@
  * camera.c — UART2 由 SysConfig 管理，这里只做 NVIC + ISR + 协议解析
  * 协议: [0x6B][0x5B][0x5B][CMD][0xB3]
  * =========================================================================*/
-#include "camera.h"
-#include "struct_typedef.h"
+#include "BSP/sensors/camera.h"
+#include "BSP/struct_typedef.h"
 #include "ti_msp_dl_config.h"
 
 /* ---- 协议常量 ---- */

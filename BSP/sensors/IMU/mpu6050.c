@@ -9,8 +9,8 @@
  *  - delay_us 5us 级别（BSP/Delay.h）
  *  - 开漏等效：用输出 + PULL_UP + 高驱动；SDA 切输入用 DL_GPIO_initDigitalInputFeatures
  * =========================================================================*/
-#include "mpu6050.h"
-#include "BSP/Delay.h"
+#include "BSP/sensors/IMU/mpu6050.h"
+#include "BSP/utils/Delay.h"
 #include <math.h>
 
 /* v4.22：暴露 WHO_AM_I 原始字节给 OLED 调试

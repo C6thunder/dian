@@ -6,7 +6,7 @@
 #ifndef PID_H
 #define PID_H
 
-#include "struct_typedef.h"
+#include "BSP/struct_typedef.h"
 
 enum PID_MODE {
     PID_POSITION = 0,           // 普通位置式 PID

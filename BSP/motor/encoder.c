@@ -1,4 +1,4 @@
-#include "encoder.h"
+#include "BSP/motor/encoder.h"
 
 // 索引 0 保留未用，1 对应 TB6612 B 通道（电机1），2 对应 A 通道（电机2）
 static Encoder_t g_encoder[3] = {0};

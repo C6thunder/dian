@@ -17,7 +17,7 @@
 #ifndef SOFT_TIMER_H
 #define SOFT_TIMER_H
 
-#include "struct_typedef.h"
+#include "BSP/struct_typedef.h"
 
 typedef enum {
     SOFT_TIMER_READ_IMU = 0,    // 20ms    读 MPU6050 一次

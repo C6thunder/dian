@@ -4,7 +4,7 @@
 #ifndef CONTROL_H
 #define CONTROL_H
 
-#include "struct_typedef.h"
+#include "BSP/struct_typedef.h"
 
 void control_init(void);
 void control_heading_hold(void);

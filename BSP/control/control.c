@@ -9,9 +9,9 @@
  *   上电立即出发 → 行驶 ~4m 检测 2帧内≥4路不同黑 → 急停，最远 4.5m 强制停
  */
 
-#include "control.h"
-#include "encoder.h"
-#include "motor.h"
+#include "BSP/control/control.h"
+#include "BSP/motor/encoder.h"
+#include "BSP/motor/motor.h"
 
 /* ========== 循迹 PD 参数 ========== */
 #define TRACE_KP       10        /* 比例系数 */

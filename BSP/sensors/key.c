@@ -1,5 +1,5 @@
-#include "key.h"
-#include "encoder.h"
+#include "BSP/sensors/key.h"
+#include "BSP/motor/encoder.h"
 
 // 按键事件标志（在 ISR 置位，主循环处理完清零）
 //   bit0: KEY11(PB0) 按下 → 请求航向重置

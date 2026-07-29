@@ -8,12 +8,12 @@
  *  - mpu6050_read_gyro_raw / mpu6050_write_byte / mpu6050_read_byte 行为不变
  *  - 这里只调底层 API，pin 改动对上层透明
  * =========================================================================*/
-#include "IMU.h"
-#include "BSP/eMPL/inv_mpu.h"
-#include "BSP/eMPL/inv_mpu_dmp_motion_driver.h"
-#include "mpu6050.h"
+#include "BSP/sensors/IMU/IMU.h"
+#include "BSP/sensors/eMPL/inv_mpu.h"
+#include "BSP/sensors/eMPL/inv_mpu_dmp_motion_driver.h"
+#include "BSP/sensors/IMU/mpu6050.h"
 #include "BSP/struct_typedef.h"   // g_tick_ms
-#include "BSP/Delay.h"
+#include "BSP/utils/Delay.h"
 
 /* v4.16.2：PWR_MGMT_1 / PWR_MGMT_2 在 wakeup 后的实际值，给 OLED 状态条读 */
 uint8_t g_pwr_mgmt_1 = 0xFF;

@@ -1,6 +1,6 @@
 #include "oled.h"
 #include "stdlib.h"
-#include "BSP/oledfont.h"
+#include "BSP/utils/oledfont.h"
 
 u8 OLED_GRAM[144][8];
 extern void delay_ms(uint32_t ms);
